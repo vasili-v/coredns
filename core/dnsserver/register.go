@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,6 +32,11 @@ func init() {
 			}
 		},
 		NewContext: newContext,
+	})
+
+	caddy.RegisterPlugin("throttle", caddy.Plugin{
+		ServerType: serverType,
+		Action:     setupThrottle,
 	})
 }
 
@@ -185,6 +191,30 @@ func groupConfigsByListenAddr(configs []*Config) (map[string][]*Config, error) {
 	}
 
 	return groups, nil
+}
+
+func setupThrottle(c *caddy.Controller) error {
+	found := false
+	for c.Next() {
+		if found {
+			return c.Err("throttle can only be specified once")
+		}
+
+		args := c.RemainingArgs()
+		if len(args) != 1 || c.NextBlock() {
+			return c.ArgErr()
+		}
+
+		limit, err := strconv.ParseInt(args[0], 0, 0)
+		if err != nil {
+			return c.Errf("can't interpret %q as limit for throttle: %s", args[0], err)
+		}
+
+		GetConfig(c).ThrottleLimit = int(limit)
+		found = true
+	}
+
+	return nil
 }
 
 const (

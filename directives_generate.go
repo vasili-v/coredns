@@ -13,7 +13,7 @@ import (
 
 func main() {
 	mi := make(map[string]string, 0)
-	md := []string{}
+	md := []string{"throttle"}
 
 	file, err := os.Open(pluginFile)
 	if err != nil {

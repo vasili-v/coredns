@@ -19,6 +19,8 @@ type Config struct {
 	// The port to listen on.
 	Port string
 
+	ThrottleLimit int
+
 	// Root points to a base directory we we find user defined "things".
 	// First consumer is the file plugin to looks for zone files in this place.
 	Root string

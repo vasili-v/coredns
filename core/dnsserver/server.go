@@ -38,6 +38,8 @@ type Server struct {
 	trace       trace.Trace        // the trace plugin for the server
 	debug       bool               // disable recover()
 	classChaos  bool               // allow non-INET class queries
+
+	limit int
 }
 
 // NewServer returns a new CoreDNS server and compiles all plugins in to it. By default CH class
@@ -84,6 +86,8 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 			}
 		}
 		site.pluginChain = stack
+
+		s.limit = site.ThrottleLimit
 	}
 
 	return s, nil
@@ -106,10 +110,15 @@ func (s *Server) Serve(l net.Listener) error {
 // This implements caddy.UDPServer interface.
 func (s *Server) ServePacket(p net.PacketConn) error {
 	s.m.Lock()
-	s.server[udp] = &dns.Server{PacketConn: p, Net: "udp", Handler: dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
-		ctx := context.Background()
-		s.ServeDNS(ctx, w, r)
-	})}
+	s.server[udp] = &dns.Server{
+		PacketConn: p,
+		Net: "udp",
+		Handler: dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+			ctx := context.Background()
+			s.ServeDNS(ctx, w, r)
+		}),
+		WorkerLimit: s.limit,
+	}
 	s.m.Unlock()
 
 	return s.server[udp].ActivateAndServe()

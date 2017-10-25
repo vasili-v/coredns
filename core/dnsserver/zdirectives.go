@@ -11,6 +11,7 @@ package dnsserver
 // care what plugin above them are doing.
 
 var directives = []string{
+	"throttle",
 	"tls",
 	"root",
 	"bind",
